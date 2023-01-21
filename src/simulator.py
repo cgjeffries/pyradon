@@ -1,6 +1,11 @@
 import numpy as np
-from src.finder import Finder, gaussian2D
-from src.streak import model
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from finder import Finder, gaussian2D
+from streak import model
 
 
 class Simulator:
