@@ -36,6 +36,7 @@ class Simulator:
         self.image_clean = None
         self.image = None
         self.psf = None
+        self.poisson_noise = None
 
         # switches
         self.im_size = 512  # assume we want to make square images
@@ -43,6 +44,7 @@ class Simulator:
         self.bg_noise_var = 1.0
         self.use_source_noise = True
         self.psf_sigma = 2.0
+        self.streak_brightness = 1
 
         # adding stars
         self.number_stars = 0
@@ -123,7 +125,7 @@ class Simulator:
 
         return abs(snr)
 
-    def make_image(self):
+    def make_image(self, seed=None, input_noise=None):
 
         if self.verbosity > 1:
             print("make_image()")
@@ -134,8 +136,9 @@ class Simulator:
             number=self.number_stars,
             brightness=self.star_brightness,
             power_law=self.star_power_law,
+            seed=seed
         )
-        self.add_noise()
+        self.add_noise(seed, input_noise)
 
     def make_clean(self):
         self.image_clean = self.intensity * model(
@@ -145,9 +148,10 @@ class Simulator:
             self.y1 * self.im_size,
             self.y2 * self.im_size,
             self.psf_sigma,
+            brightness=self.streak_brightness,
         )
 
-    def add_noise(self):
+    def add_noise(self, seed=None, imput_noise=None):
 
         if self.verbosity > 2:
             print("add_noise()")
@@ -161,9 +165,17 @@ class Simulator:
         else:
             var = bg
 
-        self.image = np.random.poisson(var).astype(np.float32) - self.bg_noise_var
+        if seed is not None:
+            np.random.seed(seed)
 
-    def add_stars(self, number=10, brightness=100, power_law=0):
+        if imput_noise is not None:
+            self.image = imput_noise + var
+        else:
+            #self.image = np.random.poisson(np.ones(size)/2).astype(np.float32) + var - self.bg_noise_var
+            self.image = np.random.poisson(var).astype(np.float32) - self.bg_noise_var
+            self.poisson_noise = self.image - var
+
+    def add_stars(self, number=10, brightness=100, power_law=0, seed = None):
         """
         Generate randomly placed stars with brightness
         chosen from a power law (or a constant brightness).
@@ -193,6 +205,9 @@ class Simulator:
         im: np.array of floats
             an image with stars, without noise.
         """
+
+        if seed is not None:
+            np.random.seed(seed)
 
         im = np.zeros((self.im_size, self.im_size), dtype=np.float32)
         for i in range(number):

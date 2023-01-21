@@ -1,6 +1,8 @@
 import os
 import time
 import re
+
+import cv2
 import h5py
 import numpy as np
 from numpy.fft import fft2, ifft2, fftshift
@@ -559,7 +561,7 @@ class Streak:
 
 
 def model(
-    im_size, x1, x2, y1, y2, psf_sigma=2, replace_value=0, threshold=1e-10, oversample=4
+    im_size, x1, x2, y1, y2, psf_sigma=2, replace_value=0, threshold=1e-10, oversample=4, brightness = 1
 ):
     """
     Generate a model streak using the given coordinates,
@@ -657,7 +659,7 @@ def model(
         d = np.abs(a * x - y + b) / np.sqrt(1 + a**2)  # distance from line
 
     # an image of an infinite streak with gaussian width psf_sigma
-    im0 = (1 / np.sqrt(2.0 * np.pi) / psf_sigma) * np.exp(
+    im0 = (brightness / np.sqrt(2.0 * np.pi) / psf_sigma) * np.exp(
         -0.5 * d**2 / psf_sigma**2
     )
 
@@ -699,7 +701,7 @@ def model(
     out_im = np.fmax(im0, np.fmax(im1, im2))
 
     if oversample > 1:
-        out_im = downsample(out_im, oversample) / oversample
+        out_im = downsample(out_im, oversample, "sum") / oversample
 
     # apply threshold and replace value
     if threshold is not None and replace_value is not None:
@@ -755,9 +757,22 @@ def downsample(im, factor=2, normalization="sum"):
             f'Got "{normalization}" instead. '
         )
 
+    # cv2.imwrite("before.png", im)
+
     im_conv = scipy.signal.convolve2d(im, k, mode="same")
 
-    return im_conv[factor - 1 :: factor, factor - 1 :: factor]
+    #cv2.imwrite("convolve2d.png", im_conv[factor - 1:: factor, factor - 1:: factor])
+    return im_conv[factor - 1:: factor, factor - 1:: factor]
+
+    #im_conv = scipy.ndimage.filters.convolve(im, k, mode="same")
+
+    # new_shape = tuple(dim//factor for dim in im.shape)
+    # im_conv = np.ones(new_shape)
+    # im_conv = cv2.resize(im, new_shape, cv2.INTER_AREA)
+    #
+    # cv2.imwrite("cv2_resize.png", im_conv)
+
+    # return im_conv
 
 
 def upsample(im, factor=2):
