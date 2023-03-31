@@ -468,6 +468,30 @@ class Streak:
 
         im[mask] = replace_value
 
+
+    def get_mask(self, im, image_type="subsection"):
+
+        if image_type == "subsection":
+            mask = (
+                model(im.shape, self.x1, self.x2, self.y1, self.y2, self.psf_sigma) > 0
+            )
+        elif image_type == "full":
+            mask = (
+                model(im.shape, self.x1f, self.x2f, self.y1f, self.y2f, self.psf_sigma)
+                > 0
+            )
+        elif image_type == "cutout":
+            mask = (
+                model(im.shape, self.x1c, self.x2c, self.y1c, self.y2, self.psf_sigma)
+                > 0
+            )
+        else:
+            raise ValueError(
+                f"image_type {image_type} not recognized... use 'subsection', 'full', or 'cutout'. "
+            )
+
+        return mask
+
     def show(self, ax=None):
         """
         Show the processed image, with the streak
